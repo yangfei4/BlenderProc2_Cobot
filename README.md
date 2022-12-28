@@ -4,4 +4,5 @@ This repo is a demo script of blenderProc2, particularly the physics collision a
 ```
 pip install blenderproc
 blenderproc quickstart
+blenderproc vis hdf5 output/0.hdf5
 ```
