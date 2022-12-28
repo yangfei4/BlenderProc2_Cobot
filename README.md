@@ -3,4 +3,5 @@ This repo is a demo script of blenderProc2, particularly the physics collision a
 
 ```
 pip install blenderproc
+blenderproc quickstart
 ```
