@@ -21,7 +21,7 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
     if 'background' in obj.name:
         continue
 
-    for _ in range(15):
+    for _ in range(10):
         offset = 0.005
         obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
 
@@ -49,6 +49,23 @@ light.set_energy(1)
 
 # Set the camera pose to be in front of the bin
 bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22], [0.64, 0, 0]))
+# define the camera resolution
+''' 
+cam_k = np.array([[21627.734375, 0, 2353.100109], 
+                  [0, 21643.369141, 1917.666411],
+                  [0, 0, 1]])
+
+# camera.camera.set_resolution(512, 512)
+W, H = 5472, 3648
+bproc.camera.set_resolution(W, H)
+bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
+
+
+# read the camera positions file and convert into homogeneous camera-world transformation
+cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(np.eye(4), ["X", "-Y", "-Z"])
+bproc.camera.add_camera_pose(cam2world)
+
+'''
 
 # # Make the bin object passively participate in the physics simulation
 # bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
