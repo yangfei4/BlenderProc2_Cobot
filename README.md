@@ -12,3 +12,5 @@ blenderproc vis hdf5 output/0.hdf5
  blenderproc run ./main.py ./BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj
  blenderproc vis hdf5 output/0.hdf5
 ```
+
+![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
