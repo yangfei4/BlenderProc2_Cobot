@@ -2,60 +2,56 @@ import blenderproc as bproc
 import argparse
 import numpy as np
 
-
-
 parser = argparse.ArgumentParser()
-parser.add_argument('object', nargs='?', default="./CAD_model/models/insert_mold.obj", help="Path to the model file")
-parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved")
+parser.add_argument('object', default="./CAD_model/models/insert_mold.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
+# parser.add_argument('object', default="./CAD_model/decompose/carrot_cake_4k.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
+# parser.add_argument('shapenet_path', help="Path to the downloaded shape net core v2 dataset, get it [here](http://www.shapenet.org/)")
+parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved ")
+parser.add_argument('vhacd_path', nargs='?', default="./BlenderProc/resources/vhacd", help="The directory in which vhacd should be installed or is already installed.")
 args = parser.parse_args()
 
 bproc.init()
 
-# load the objects into the scene
+# Load a bin object that gonna catch the ShapeNet objects
 obj = bproc.loader.load_obj(args.object)[0]
-# Use vertex color for texturing
-for mat in obj.get_materials():
-    mat.map_vertex_color()
-# Set pose of object via local-to-world transformation matrix
-obj.set_local2world_mat(
-    [[0.331458, -0.9415833, 0.05963787, -0.04474526765165741],
-    [-0.6064861, -0.2610635, -0.7510136, 0.08970402424862098],
-    [0.7227108, 0.2127592, -0.6575879, 0.6823395750305427],
-    [0, 0, 0, 1.0]]
-)
-# Scale 3D model from mm to m
-obj.set_scale([1, 1, 1])
-# Set category id which will be used in the BopWriter
-obj.set_cp("category_id", 1)
 
-# define a light and set its location and energy level
+# # Load multiple objects from ShapeNet
+# shapenet_objs = []
+# for synset_id, source_id in [("02801938", "d9fb327b0e19a9ddc735651f0fb19093"), ("02880940", "a9ba34614bfd8ca9938afc5c0b5b182"), ("02691156", "56c605d0b1bd86a9f417244ad1b14759"), ("04380533", "102273fdf8d1b90041fbc1e2da054acb"), ("02954340", "1fd62459ef715e71617fb5e58b4b0232")]:
+#     shapenet_objs.append(bproc.loader.load_shapenet(args.shapenet_path, synset_id, source_id))
+
+# Define a function that samples the pose of a given ShapeNet object
+def sample_pose(obj: bproc.types.MeshObject):
+    # Sample the location above the bin
+    obj.set_location(np.random.uniform([-0.5, -0.5, 2], [0.5, 0.5, 5]))
+    obj.set_rotation_euler(bproc.sampler.uniformSO3())
+
+# Define a sun light
 light = bproc.types.Light()
-light.set_type("POINT")
-light.set_location([5, -5, 5])
-light.set_energy(1000)
+light.set_type("SUN")
+light.set_location([0, 0, 0])
+light.set_rotation_euler([-0.063, 0.6177, -0.1985])
+light.set_color([1, 1, 1])
+light.set_energy(1)
 
-# Set intrinsics via K matrix
-bproc.camera.set_intrinsics_from_K_matrix(
-    [[537.4799, 0.0, 318.8965],
-     [0.0, 536.1447, 238.3781],
-     [0.0, 0.0, 1.0]], 640, 480
+# Set the camera pose to be in front of the bin
+bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22], [0.64, 0, 0]))
+
+# Make the bin object passively participate in the physics simulation
+obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
+# Let its collision shape be a convex decomposition of its original mesh
+# This will make the simulation more stable, while still having accurate collision detection
+obj.build_convex_decomposition_collision_shape(args.vhacd_path)
+
+# Run the physics simulation for at most 20 seconds
+bproc.object.simulate_physics_and_fix_final_poses(
+    min_simulation_time=4,
+    max_simulation_time=20,
+    check_object_interval=1
 )
-# Set camera pose via cam-to-world transformation matrix
-cam2world = np.array([
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 1]
-])
-# Change coordinate frame of transformation matrix from OpenCV to Blender coordinates
-cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam2world, ["X", "-Y", "-Z"])
-bproc.camera.add_camera_pose(cam2world)
-
-# activate depth rendering
-bproc.renderer.enable_depth_output(activate_antialiasing=False)
 
 # render the whole pipeline
 data = bproc.renderer.render()
 
-# Write object poses, color and depth in bop format
-bproc.writer.write_bop(args.output_dir, [obj], data["depth"], data["colors"], m2mm=True, append_to_existing_output=True)
+# write the data to a .hdf5 container
+bproc.writer.write_hdf5(args.output_dir, data)
