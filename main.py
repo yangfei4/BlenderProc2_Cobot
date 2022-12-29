@@ -2,9 +2,10 @@ import blenderproc as bproc
 import argparse
 import numpy as np
 
+from pathlib import Path
+
 parser = argparse.ArgumentParser()
 parser.add_argument('bin_object', default="BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
-parser.add_argument('cobotCAD_path', default="./CAD_model/models/insert_mold.obj", help="Path to the downloaded shape net core v2 dataset, get it [here](http://www.shapenet.org/)")
 parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved ")
 parser.add_argument('vhacd_path', nargs='?', default="blenderproc_resources/vhacd", help="The directory in which vhacd should be installed or is already installed.")
 args = parser.parse_args()
@@ -14,18 +15,27 @@ bproc.init()
 # Load a bin object that gonna catch the usb objects
 bin_obj = bproc.loader.load_obj(args.bin_object)[0]
 
-insert_mold = bproc.loader.load_obj(args.cobotCAD_path)
-insert_mold[0].set_scale([10, 10, 10])
+parts = ['mainshell', 'topshell', 'insert_mold']
+obj_queue = []
+for obj in Path("./CAD_model/models").rglob('*.obj'):
+    if 'background' in obj.name:
+        continue
+
+    for _ in range(15):
+        offset = 0.005
+        obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
+
 # Define a function that samples the pose of a given usb object
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the bin
-    # obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 2.5]))
-    obj.set_location(np.array([0, 0, 1]))
+    obj.set_scale([10, 10, 10])
+    obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 1.5]))
+    # obj.set_location(np.array([0, 0, 1]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
 bproc.object.sample_poses(
-    insert_mold,
+    obj_queue,
     sample_pose_func=sample_pose
 )
 
