@@ -8,5 +8,4 @@ blenderproc vis hdf5 output/0.hdf5
 ```
 
 ```
-blenderproc run .\main.py .\BlenderProc\examples\basics\camera_object_pose\obj_000004.ply .\CAD_model\models\insert_mold.obj
-```
+ blenderproc run .\main.py .\BlenderProc\examples\advanced\physics_convex_decomposition\bin.obj .\CAD_model\models\insert_mold.obj
