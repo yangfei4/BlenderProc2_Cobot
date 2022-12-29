@@ -1,62 +1,61 @@
 import blenderproc as bproc
+import argparse
 import numpy as np
 
-from pathlib import Path
 
-# Initialize
+
+parser = argparse.ArgumentParser()
+parser.add_argument('object', nargs='?', default="./CAD_model/models/insert_mold.obj", help="Path to the model file")
+parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved")
+args = parser.parse_args()
+
 bproc.init()
 
-# cad_path = Path("./CAD_model/insert_mold.obj")
-cad_path = "./CAD_model/insert_mold.obj"
 # load the objects into the scene
-# obj = bproc.loader.load_obj(cad_path)
-obj = bproc.object.create_primitive("MONKEY")
-
-obj.set_cp("category_id", 0)
-pose = np.eye(4)
-pose[:, 3] = np.array([0, 0, 1.6 + 0.05, 1]).T
+obj = bproc.loader.load_obj(args.object)[0]
+# Use vertex color for texturing
+for mat in obj.get_materials():
+    mat.map_vertex_color()
+# Set pose of object via local-to-world transformation matrix
+obj.set_local2world_mat(
+    [[0.331458, -0.9415833, 0.05963787, -0.04474526765165741],
+    [-0.6064861, -0.2610635, -0.7510136, 0.08970402424862098],
+    [0.7227108, 0.2127592, -0.6575879, 0.6823395750305427],
+    [0, 0, 0, 1.0]]
+)
+# Scale 3D model from mm to m
 obj.set_scale([1, 1, 1])
-obj.set_local2world_mat(pose)
+# Set category id which will be used in the BopWriter
+obj.set_cp("category_id", 1)
 
 # define a light and set its location and energy level
 light = bproc.types.Light()
 light.set_type("POINT")
-light.set_location([0, 0, -1])
+light.set_location([5, -5, 5])
 light.set_energy(1000)
 
-
-# # Set the camera to be in front of the object
-# cam_pose = bproc.math.build_transformation_mat([0, -5, 0], [np.pi / 2, 0, 0])
-# bproc.camera.add_camera_pose(cam_pose)
-
-# define the camera resolution
-cam_k = np.array([[21627.734375, 0, 2353.100109], 
-                  [0, 21643.369141, 1917.666411],
-                  [0, 0, 1]])
-# camera.camera.set_resolution(512, 512)
-W, H = 5472, 3648
-bproc.camera.set_resolution(W, H)
-bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
-# read the camera positions file and convert into homogeneous camera-world transformation
+# Set intrinsics via K matrix
+bproc.camera.set_intrinsics_from_K_matrix(
+    [[537.4799, 0.0, 318.8965],
+     [0.0, 536.1447, 238.3781],
+     [0.0, 0.0, 1.0]], 640, 480
+)
 # Set camera pose via cam-to-world transformation matrix
-cam2world = np.eye(4)
+cam2world = np.array([
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+])
 # Change coordinate frame of transformation matrix from OpenCV to Blender coordinates
 cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam2world, ["X", "-Y", "-Z"])
 bproc.camera.add_camera_pose(cam2world)
 
+# activate depth rendering
+bproc.renderer.enable_depth_output(activate_antialiasing=False)
 
-# Render the scene
+# render the whole pipeline
 data = bproc.renderer.render()
 
-# Write the rendering into an hdf5 file
-# bproc.writer.write_hdf5("output/", data)
-
-# COCO
-seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
-# Write data to coco file
-output_path = "output/"
-bproc.writer.write_coco_annotations(output_path,
-                                    instance_segmaps=seg_data["instance_segmaps"],
-                                    instance_attribute_maps=seg_data["instance_attribute_maps"],
-                                    colors=data["colors"],
-                                    color_file_format="PNG")
+# Write object poses, color and depth in bop format
+bproc.writer.write_bop(args.output_dir, [obj], data["depth"], data["colors"], m2mm=True, append_to_existing_output=True)
