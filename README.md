@@ -14,3 +14,6 @@ blenderproc vis hdf5 output/0.hdf5
 ```
 
 ![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
+
+When I turn on the `bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")`
+![plot2](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/error.png)
