@@ -15,11 +15,12 @@ bproc.init()
 bin_obj = bproc.loader.load_obj(args.bin_object)[0]
 
 insert_mold = bproc.loader.load_obj(args.cobotCAD_path)
-
+insert_mold[0].set_scale([10, 10, 10])
 # Define a function that samples the pose of a given usb object
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the bin
-    obj.set_location(np.random.uniform([-0.5, -0.5, 2], [0.5, 0.5, 5]))
+    # obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 2.5]))
+    obj.set_location(np.array([0, 0, 1]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
@@ -39,23 +40,23 @@ light.set_energy(1)
 # Set the camera pose to be in front of the bin
 bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22], [0.64, 0, 0]))
 
-# Make the bin object passively participate in the physics simulation
-bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
-# Let its collision shape be a convex decomposition of its original mesh
-# This will make the simulation more stable, while still having accurate collision detection
-bin_obj.build_convex_decomposition_collision_shape(args.vhacd_path)
+# # Make the bin object passively participate in the physics simulation
+# bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
+# # Let its collision shape be a convex decomposition of its original mesh
+# # This will make the simulation more stable, while still having accurate collision detection
+# bin_obj.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-# Make the bin object actively participate in the physics simulation (they should fall into the bin)
-insert_mold.enable_rigidbody(active=True, collision_shape="COMPOUND")
-# Also use convex decomposition as collision shapes
-insert_mold.build_convex_decomposition_collision_shape(args.vhacd_path)
+# # Make the bin object actively participate in the physics simulation (they should fall into the bin)
+# insert_mold.enable_rigidbody(active=True, collision_shape="COMPOUND")
+# # Also use convex decomposition as collision shapes
+# insert_mold.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-# Run the physics simulation for at most 20 seconds
-bproc.object.simulate_physics_and_fix_final_poses(
-    min_simulation_time=4,
-    max_simulation_time=20,
-    check_object_interval=1
-)
+# # Run the physics simulation for at most 20 seconds
+# bproc.object.simulate_physics_and_fix_final_poses(
+#     min_simulation_time=4,
+#     max_simulation_time=20,
+#     check_object_interval=1
+# )
 
 # render the whole pipeline
 data = bproc.renderer.render()
