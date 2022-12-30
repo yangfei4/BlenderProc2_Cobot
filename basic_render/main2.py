@@ -1,7 +1,6 @@
 import blenderproc as bproc
 import argparse
 import numpy as np
-import bpy
 
 from pathlib import Path
 
@@ -13,18 +12,8 @@ args = parser.parse_args()
 
 bproc.init()
 
-
 # Load a bin object that gonna catch the usb objects
 bin_obj = bproc.loader.load_obj(args.bin_object)[0]
-bin_obj.set_scale([0.15, 0.15, 0.15])
-bin_obj.set_location(np.array([0, 0, 1.8]))
-bin_obj.set_rotation_euler(np.array([np.pi/2, 0, 0]))
-
-# tagboard_path = list(Path("./CAD_model").rglob('*.png'))[0]
-# april_tagboard = bproc.loader.load_texture(path = tagboard_path)[0]
-# april_tagboard = bpy.data.images.load(filepath=str(tagboard_path))
-# for m in bin_obj.get_materials():
-#     m.set_principled_shader_value('Base Color', april_tagboard)
 
 parts = ['mainshell', 'topshell', 'insert_mold']
 obj_queue = []
@@ -39,9 +28,8 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
 # Define a function that samples the pose of a given usb object
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the bin
-    obj.set_scale([1, 1, 1])
-    # obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 1.5]))
-    obj.set_location(np.random.uniform([-0.15, -0.1, 1.4], [0.15, 0.1, 1.6]))
+    obj.set_scale([10, 10, 10])
+    obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 1.5]))
     # obj.set_location(np.array([0, 0, 1]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
@@ -54,11 +42,11 @@ bproc.object.sample_poses(
 # Define a sun light
 light = bproc.types.Light()
 light.set_type("SUN")
-light.set_location([0, 0.1, -0.5])
+light.set_location([0, 0, 0])
 light.set_rotation_euler([-0.063, 0.6177, -0.1985])
 light.set_color([1, 1, 1])
-light.set_energy(150)
-'''
+light.set_energy(1)
+
 # Set the camera pose to be in front of the bin
 bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22], [0.64, 0, 0]))
 # define the camera resolution
@@ -66,18 +54,14 @@ bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22
 cam_k = np.array([[21627.734375, 0, 2353.100109], 
                   [0, 21643.369141, 1917.666411],
                   [0, 0, 1]])
-
 # camera.camera.set_resolution(512, 512)
 W, H = 5472, 3648
 bproc.camera.set_resolution(W, H)
 bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
-
-
 # read the camera positions file and convert into homogeneous camera-world transformation
 cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(np.eye(4), ["X", "-Y", "-Z"])
 bproc.camera.add_camera_pose(cam2world)
-
-
+'''
 
 # # Make the bin object passively participate in the physics simulation
 # bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
