@@ -6,19 +6,27 @@ import bpy
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument('bin_object', default="BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
+parser.add_argument('tag_board', default="./CAD_model/tagboard_21x21x1cm.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
 parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved ")
 parser.add_argument('vhacd_path', nargs='?', default="blenderproc_resources/vhacd", help="The directory in which vhacd should be installed or is already installed.")
 args = parser.parse_args()
 
 bproc.init()
+Physics = False
 
+# # Load a bin object that gonna catch the usb objects
+# bin_path = "BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj"
+# bin_obj = bproc.loader.load_obj(bin_path)[0]
+# # bin_obj.set_scale([0.15, 0.15, 0.15])
+# bin_obj.set_scale([1, 1, 1])
+# bin_obj.set_location(np.array([0, 0, 1.8]))
+# bin_obj.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
 
-# Load a bin object that gonna catch the usb objects
-bin_obj = bproc.loader.load_obj(args.bin_object)[0]
-bin_obj.set_scale([0.15, 0.15, 0.15])
-bin_obj.set_location(np.array([0, 0, 1.8]))
-bin_obj.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
+# Load tag_board that gonna catch the usb objects
+tag_baord = bproc.loader.load_obj(args.tag_board)[0]
+tag_baord.set_scale([1, 1, 1])
+tag_baord.set_location(np.array([0, 0, 1.8]))
+tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
 
 # tagboard_path = list(Path("./CAD_model").rglob('*.png'))[0]
 # april_tagboard = bproc.loader.load_texture(path = tagboard_path)[0]
@@ -40,8 +48,8 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the bin
     obj.set_scale([1, 1, 1])
-    # obj.set_location(np.random.uniform([-0.5, -0.5, 1], [0.5, 0.5, 1.5]))
-    obj.set_location(np.random.uniform([-0.1, -0.1, 1.4], [0.1, 0.1, 1.6]))
+    # obj.set_location(np.random.uniform([-0.1, -0.1, 1.4], [0.1, 0.1, 1.6]))
+    obj.set_location(np.random.uniform([-0.1, -0.1, 1.6], [0.1, 0.1, 1.6]))
     # obj.set_location(np.array([0, 0, 1]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
@@ -91,24 +99,26 @@ light.set_color([1, 1, 1])
 light.set_energy(100)
 
 
-# # Make the bin object passively participate in the physics simulation
-bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
-# Let its collision shape be a convex decomposition of its original mesh
-# This will make the simulation more stable, while still having accurate collision detection
-bin_obj.build_convex_decomposition_collision_shape(args.vhacd_path)
+if Physics:
+    # # Make the bin object passively participate in the physics simulation
+    tag_baord.enable_rigidbody(active=False, collision_shape="COMPOUND")
+    # Let its collision shape be a convex decomposition of its original mesh
+    # This will make the simulation more stable, while still having accurate collision detection
+    tag_baord.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-for part in obj_queue:
-    # Make the bin object actively participate in the physics simulation (they should fall into the bin)
-    part.enable_rigidbody(active=True, collision_shape="COMPOUND")
-    # Also use convex decomposition as collision shapes
-    part.build_convex_decomposition_collision_shape(args.vhacd_path)
+    for part in obj_queue:
+        # Make the bin object actively participate in the physics simulation (they should fall into the bin)
+        part.enable_rigidbody(active=True, collision_shape="COMPOUND")
+        # Also use convex decomposition as collision shapes
+        part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-# Run the physics simulation for at most 20 seconds
-bproc.object.simulate_physics_and_fix_final_poses(
-    min_simulation_time=4,
-    max_simulation_time=20,
-    check_object_interval=1
-)
+    # Run the physics simulation for at most 20 seconds
+    bproc.object.simulate_physics_and_fix_final_poses(
+        min_simulation_time=4,
+        max_simulation_time=20,
+        check_object_interval=1
+    )
+
 
 # render the whole pipeline
 data = bproc.renderer.render()
