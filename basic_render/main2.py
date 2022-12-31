@@ -21,7 +21,7 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
     if 'background' in obj.name:
         continue
 
-    for _ in range(10):
+    for _ in range(5):
         offset = 0.005
         obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
 
@@ -63,23 +63,24 @@ cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(n
 bproc.camera.add_camera_pose(cam2world)
 '''
 
-# # Make the bin object passively participate in the physics simulation
-# bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
-# # Let its collision shape be a convex decomposition of its original mesh
-# # This will make the simulation more stable, while still having accurate collision detection
-# bin_obj.build_convex_decomposition_collision_shape(args.vhacd_path)
+# Make the bin object passively participate in the physics simulation
+bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")
+# Let its collision shape be a convex decomposition of its original mesh
+# This will make the simulation more stable, while still having accurate collision detection
+bin_obj.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-# # Make the bin object actively participate in the physics simulation (they should fall into the bin)
-# insert_mold.enable_rigidbody(active=True, collision_shape="COMPOUND")
-# # Also use convex decomposition as collision shapes
-# insert_mold.build_convex_decomposition_collision_shape(args.vhacd_path)
+for part in obj_queue:
+    # Make the bin object actively participate in the physics simulation (they should fall into the bin)
+    part.enable_rigidbody(active=True, collision_shape="COMPOUND")
+    # Also use convex decomposition as collision shapes
+    part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-# # Run the physics simulation for at most 20 seconds
-# bproc.object.simulate_physics_and_fix_final_poses(
-#     min_simulation_time=4,
-#     max_simulation_time=20,
-#     check_object_interval=1
-# )
+# Run the physics simulation for at most 20 seconds
+bproc.object.simulate_physics_and_fix_final_poses(
+    min_simulation_time=4,
+    max_simulation_time=20,
+    check_object_interval=1
+)
 
 # render the whole pipeline
 data = bproc.renderer.render()
