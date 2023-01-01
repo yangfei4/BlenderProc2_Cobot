@@ -49,7 +49,7 @@ def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the bin
     obj.set_scale([1, 1, 1])
     # obj.set_location(np.random.uniform([-0.1, -0.1, 1.4], [0.1, 0.1, 1.6]))
-    obj.set_location(np.random.uniform([-0, -0, 1.4], [0, 0, 1.6]))
+    obj.set_location(np.random.uniform([-0.04, -0.04, 1.4], [0.04, 0.04, 1.6]))
     # obj.set_location(np.array([0, 0, 1]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
