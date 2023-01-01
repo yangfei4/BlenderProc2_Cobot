@@ -24,7 +24,7 @@ Physics = False
 
 # Load tag_board that gonna catch the usb objects
 tag_baord = bproc.loader.load_obj(args.tag_board)[0]
-tag_baord.set_scale([1, 1, 1])
+tag_baord.set_scale([0.1, 0.1, 0.1])
 tag_baord.set_location(np.array([0, 0, 1.8]))
 tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
 
