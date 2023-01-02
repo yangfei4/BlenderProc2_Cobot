@@ -14,7 +14,7 @@ blenderproc vis hdf5 output/0.hdf5
 
 ### Physical collision experiment
 ```
- blenderproc run ./main.py ./BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj
+ blenderproc run ./main.py ./CAD_model/tagboard_21x21x1cm.obj
  blenderproc vis hdf5 output/0.hdf5
 ```
 
