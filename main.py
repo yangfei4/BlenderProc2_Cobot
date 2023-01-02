@@ -12,7 +12,7 @@ parser.add_argument('vhacd_path', nargs='?', default="blenderproc_resources/vhac
 args = parser.parse_args()
 
 bproc.init()
-Physics = False
+Physics = True
 
 # # Load a bin object that gonna catch the usb objects
 # bin_path = "BlenderProc/examples/advanced/physics_convex_decomposition/bin.obj"
@@ -28,30 +28,23 @@ tag_baord.set_scale([1, 1, 1])
 tag_baord.set_location(np.array([0, 0, 1.8]))
 tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
 
-# tagboard_path = list(Path("./CAD_model").rglob('*.png'))[0]
-# april_tagboard = bproc.loader.load_texture(path = tagboard_path)[0]
-# april_tagboard = bpy.data.images.load(filepath=str(tagboard_path))
-# for m in bin_obj.get_materials():
-#     m.set_principled_shader_value('Base Color', april_tagboard)
-
 parts = ['mainshell', 'topshell', 'insert_mold']
 obj_queue = []
 for obj in Path("./CAD_model/models").rglob('*.obj'):
     if 'background' in obj.name:
         continue
 
-    for _ in range(2):
+    for _ in range(1):
         offset = 0.005
         obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
 
 # Define a function that samples the pose of a given usb object
 def sample_pose(obj: bproc.types.MeshObject):
-    # Sample the location above the bin
+    # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    # obj.set_location(np.random.uniform([-0.1, -0.1, 1.4], [0.1, 0.1, 1.6]))
-    obj.set_location(np.random.uniform([-0.04, -0.04, 1.4], [0.04, 0.04, 1.6]))
-    # obj.set_location(np.array([0, 0, 1]))
-    obj.set_rotation_euler(bproc.sampler.uniformSO3())
+    obj.set_location(np.random.uniform([-0.04, -0.04, 1.78], [0.04, 0.04, 1.79]))
+    # obj.set_rotation_euler(bproc.sampler.uniformSO3())
+    obj.set_rotation_euler(np.array([0, 0, 0]))
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
 bproc.object.sample_poses(
@@ -60,11 +53,6 @@ bproc.object.sample_poses(
 )
 
 
-'''
-# Set the camera pose to be in front of the bin
-bproc.camera.add_camera_pose(bproc.math.build_transformation_mat([0, -2.13, 3.22], [0.64, 0, 0]))
-# define the camera resolution
-''' 
 cam_k = np.array([[21627.734375, 0, 2353.100109], 
                   [0, 21643.369141, 1917.666411],
                   [0, 0, 1]])
@@ -73,7 +61,6 @@ cam_k = np.array([[21627.734375, 0, 2353.100109],
 W, H = 5472, 3648
 bproc.camera.set_resolution(W, H)
 bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
-
 
 # read the camera positions file and convert into homogeneous camera-world transformation
 cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(np.eye(4), ["X", "-Y", "-Z"])
@@ -100,24 +87,32 @@ light.set_energy(100)
 
 
 if Physics:
-    # # Make the bin object passively participate in the physics simulation
+    # # Make the tagboard object passively participate in the physics simulation
     tag_baord.enable_rigidbody(active=False, collision_shape="COMPOUND")
     # Let its collision shape be a convex decomposition of its original mesh
     # This will make the simulation more stable, while still having accurate collision detection
     tag_baord.build_convex_decomposition_collision_shape(args.vhacd_path)
 
     for part in obj_queue:
-        # Make the bin object actively participate in the physics simulation (they should fall into the bin)
+        # Make the bin object actively participate in the physics simulation (they should fall into the board)
         part.enable_rigidbody(active=True, collision_shape="COMPOUND")
         # Also use convex decomposition as collision shapes
         part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
-    # Run the physics simulation for at most 20 seconds
-    bproc.object.simulate_physics_and_fix_final_poses(
-        min_simulation_time=4,
-        max_simulation_time=20,
-        check_object_interval=1
+    # # Run the physics simulation for at most 20 seconds
+    # bproc.object.simulate_physics_and_fix_final_poses(
+    #     min_simulation_time=0.12,
+    #     max_simulation_time=2.12,
+    #     check_object_interval=1
+    # )
+
+    bproc.object.simulate_physics(
+    min_simulation_time=0.2,
+    max_simulation_time=2.2,
+    check_object_interval=1
     )
+    # This will make the renderer render the first 10 frames of the simulation
+    bproc.utility.set_keyframe_render_interval(frame_start=5, frame_end=10)
 
 
 # render the whole pipeline
