@@ -26,8 +26,9 @@ Physics = True
 # Load tag_board that gonna catch the usb objects
 tag_baord = bproc.loader.load_obj(args.tag_board)[0]
 tag_baord.set_scale([1, 1, 1])
-tag_baord.set_location(np.array([0, 0, 1.8]))
-tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
+tag_baord.set_location(np.array([0, 0, -1.8]))
+# tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
+tag_baord.set_rotation_euler(np.array([-np.pi/2, np.pi, 0]))
 
 parts = ['mainshell', 'topshell', 'insert_mold']
 obj_queue = []
@@ -44,7 +45,8 @@ def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
     # obj.set_location(np.random.uniform([-0.04, -0.04, 1.78], [0.04, 0.04, 1.79]))
-    obj.set_location(np.random.uniform([-0.04, -0.04, 1.775], [0.04, 0.04, 1.78]))
+    # obj.set_location(np.random.uniform([-0.04, -0.04, 1.775], [0.04, 0.04, 1.78]))
+    obj.set_location(np.random.uniform([-0.04, -0.04, -1.76], [0.04, 0.04, -1.75]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
     # obj.set_rotation_euler(np.array([0, 0, 0]))
 
@@ -65,8 +67,9 @@ bproc.camera.set_resolution(W, H)
 bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
 
 # read the camera positions file and convert into homogeneous camera-world transformation
-cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(np.eye(4), ["X", "-Y", "-Z"])
-bproc.camera.add_camera_pose(cam2world)
+# cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(np.eye(4), ["X", "-Y", "-Z"])
+# bproc.camera.add_camera_pose(cam2world)
+bproc.camera.add_camera_pose(np.eye(4))
 cam_pose = bproc.camera.get_camera_pose(frame=None)
 cam_R = cam_pose[0:3, 0:3]
 
@@ -88,9 +91,10 @@ light.set_color([1, 1, 1])
 light.set_energy(100)
 
 
+
 if Physics:
     # # Make the tagboard object passively participate in the physics simulation   ## COMPOUND
-    tag_baord.enable_rigidbody(active=False, collision_shape="BOX", mass = 5)
+    tag_baord.enable_rigidbody(active=False, collision_shape="CONVEX_HULL", mass = 5)
     # Let its collision shape be a convex decomposition of its original mesh
     # This will make the simulation more stable, while still having accurate collision detection
     # tag_baord.build_convex_decomposition_collision_shape(args.vhacd_path)
@@ -98,9 +102,10 @@ if Physics:
     for part in obj_queue:
         # Make the bin object actively participate in the physics simulation (they should fall into the board)
         # part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", collision_margin = 0.01, mass=10, linear_damping = 0.2)
-        part.enable_rigidbody(active=True, collision_shape="BOX", mass=5)
+        # part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", mass=5)
+        part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=5)
         # Also use convex decomposition as collision shapes
-        # part.build_convex_decomposition_collision_shape(args.vhacd_path)
+        part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
     # # Run the physics simulation for at most 20 seconds
     # bproc.object.simulate_physics_and_fix_final_poses(
@@ -116,6 +121,7 @@ if Physics:
     )
     # This will make the renderer render the first 10 frames of the simulation
     bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=20)
+    # bproc.utility.set_keyframe_render_interval(frame_start=9, frame_end=10)
     # bproc.utility.set_keyframe_render_interval(frame_start=450, frame_end=455)
 
 
