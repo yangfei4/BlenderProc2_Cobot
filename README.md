@@ -22,7 +22,6 @@ bash scripts/physical_sim
 python generate_video.py
 ```
 
-![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
 
-When I turn on the `bin_obj.enable_rigidbody(active=False, collision_shape="COMPOUND")`
-![plot2](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/error.png)
+
+![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
