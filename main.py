@@ -2,6 +2,7 @@ import blenderproc as bproc
 import argparse
 import numpy as np
 import bpy
+import time
 
 from pathlib import Path
 
@@ -42,9 +43,10 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    obj.set_location(np.random.uniform([-0.04, -0.04, 1.78], [0.04, 0.04, 1.79]))
-    # obj.set_rotation_euler(bproc.sampler.uniformSO3())
-    obj.set_rotation_euler(np.array([0, 0, 0]))
+    # obj.set_location(np.random.uniform([-0.04, -0.04, 1.78], [0.04, 0.04, 1.79]))
+    obj.set_location(np.random.uniform([-0.04, -0.04, 1.775], [0.04, 0.04, 1.78]))
+    obj.set_rotation_euler(bproc.sampler.uniformSO3())
+    # obj.set_rotation_euler(np.array([0, 0, 0]))
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
 bproc.object.sample_poses(
@@ -87,17 +89,18 @@ light.set_energy(100)
 
 
 if Physics:
-    # # Make the tagboard object passively participate in the physics simulation
-    tag_baord.enable_rigidbody(active=False, collision_shape="COMPOUND")
+    # # Make the tagboard object passively participate in the physics simulation   ## COMPOUND
+    tag_baord.enable_rigidbody(active=False, collision_shape="BOX", mass = 5)
     # Let its collision shape be a convex decomposition of its original mesh
     # This will make the simulation more stable, while still having accurate collision detection
-    tag_baord.build_convex_decomposition_collision_shape(args.vhacd_path)
+    # tag_baord.build_convex_decomposition_collision_shape(args.vhacd_path)
 
     for part in obj_queue:
         # Make the bin object actively participate in the physics simulation (they should fall into the board)
-        part.enable_rigidbody(active=True, collision_shape="COMPOUND")
+        # part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", collision_margin = 0.01, mass=10, linear_damping = 0.2)
+        part.enable_rigidbody(active=True, collision_shape="BOX", mass=5)
         # Also use convex decomposition as collision shapes
-        part.build_convex_decomposition_collision_shape(args.vhacd_path)
+        # part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
     # # Run the physics simulation for at most 20 seconds
     # bproc.object.simulate_physics_and_fix_final_poses(
@@ -108,15 +111,38 @@ if Physics:
 
     bproc.object.simulate_physics(
     min_simulation_time=0.2,
-    max_simulation_time=2.2,
+    max_simulation_time=20,
     check_object_interval=1
     )
     # This will make the renderer render the first 10 frames of the simulation
-    bproc.utility.set_keyframe_render_interval(frame_start=5, frame_end=10)
+    bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=20)
+    # bproc.utility.set_keyframe_render_interval(frame_start=450, frame_end=455)
+
+
+# # render the whole pipeline
+# data = bproc.renderer.render()
+# # write the data to a .hdf5 container
+# bproc.writer.write_hdf5(args.output_dir, data)
 
 
 # render the whole pipeline
+bproc.renderer.set_max_amount_of_samples(50)
+bproc.renderer.set_noise_threshold(1)
+bproc.renderer.set_cpu_threads(0)
 data = bproc.renderer.render()
+seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
 
-# write the data to a .hdf5 container
-bproc.writer.write_hdf5(args.output_dir, data)
+# Write data to coco file
+# bproc.writer.write_coco_annotations(os.path.join(args.output_dir, 'coco_data'),
+time_start = time.time()
+bproc.writer.write_coco_annotations(f"{args.output_dir}",
+                        instance_segmaps=seg_data["instance_segmaps"],
+                        instance_attribute_maps=seg_data["instance_attribute_maps"],
+                        colors=data["colors"],
+                        mask_encoding_format='polygon',
+                        color_file_format="PNG", 
+                        append_to_existing_output=True)
+
+
+print(f"Seg save time: {time.time() - time_start}")
+print()
