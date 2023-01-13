@@ -14,9 +14,9 @@ blenderproc vis hdf5 output/0.hdf5
 
 ### Physical collision experiment
 ```
-bash 
-```
 bash scripts/physical_sim
+```
+
 ```
  blenderproc run ./main.py ./CAD_model/tagboard_21x21x1cm.obj
  blenderproc vis hdf5 output/0.hdf5
