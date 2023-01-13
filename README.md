@@ -22,6 +22,6 @@ bash scripts/physical_sim
 python generate_video.py
 ```
 
-
+![](https://github.com/yangfei4/BlenderProc2_Cobot/blob/main/output/simulation_demo.gif)
 
 ![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
