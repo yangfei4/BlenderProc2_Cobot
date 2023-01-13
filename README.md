@@ -17,7 +17,7 @@ blenderproc vis hdf5 output/0.hdf5
 bash scripts/physical_sim
 ```
 
-### Generate video from ./output/images folder
+### Generate video from `./output/images` folder
 ```
 python generate_video.py
 ```
