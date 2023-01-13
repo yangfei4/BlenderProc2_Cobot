@@ -17,9 +17,9 @@ blenderproc vis hdf5 output/0.hdf5
 bash scripts/physical_sim
 ```
 
+### Generate video from ./output/images folder
 ```
- blenderproc run ./main.py ./CAD_model/tagboard_21x21x1cm.obj
- blenderproc vis hdf5 output/0.hdf5
+python generate_video.py
 ```
 
 ![plot](https://github.com/D-YF/BlenderProc2_Cobot/blob/main/output/demo.png)
