@@ -15,6 +15,7 @@ blenderproc vis hdf5 output/0.hdf5
 ```
 
 ### Physical collision experiment
+Before running this, please download USB CAD models, and put it in `./CAD_model/models`
 ```
 bash scripts/physical_sim
 ```
