@@ -55,7 +55,7 @@ tag_baord.set_scale([1, 1, 1])
 tag_baord.set_location(np.array([0, 0, -1.6]))
 # tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
 tag_baord.set_rotation_euler(np.array([-np.pi/2, np.pi, np.random.uniform(0, 2*np.pi, 1).item()]))
-
+tag_baord.set_cp("category_id", -1)
 
 ###############################################################
 # Load usb objects
@@ -66,7 +66,7 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
     if 'background' in obj.name:
         continue
 
-    ## TODO(yangfei): should assign each part with unique id? e.g. mainshell_00
+    ## TODO(yangfei): should assign each part with unique id?  e.g. mainshell_00
     for _ in range(3):
         obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
         part = obj_queue[-1]
@@ -124,7 +124,7 @@ if Physics:
 ###############################################################
 # Pose information
 ###############################################################
-print('#'*50)
+print('#'*80)
 
 T_cam_to_world = bproc.camera.get_camera_pose(frame=None)
 R_cam_to_world = T_cam_to_world[0:3, 0:3]
@@ -137,7 +137,6 @@ for part in obj_queue:
 
 print(obj_queue[0].get_name(), "T_part_to_world = \n", part_poses[0])
 
-
 print('#'*80)
 
 ###############################################################
@@ -146,15 +145,20 @@ print('#'*80)
 bproc.renderer.set_max_amount_of_samples(50)
 bproc.renderer.set_noise_threshold(1)
 bproc.renderer.set_cpu_threads(0)
+# activate normal rendering
+bproc.renderer.enable_normals_output()
+bproc.renderer.enable_segmentation_output(map_by=["instance", "class", "name"])
 data = bproc.renderer.render()
-seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
+# seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
 
 time_start = time.time()
 # Write data to coco file
 # bproc.writer.write_coco_annotations(os.path.join(args.output_dir, 'coco_data'),
 bproc.writer.write_coco_annotations(f"{args.output_dir}",
-                        instance_segmaps=seg_data["instance_segmaps"],
-                        instance_attribute_maps=seg_data["instance_attribute_maps"],
+                        # instance_segmaps=seg_data["instance_segmaps"],
+                        # instance_attribute_maps=seg_data["instance_attribute_maps"],
+                        instance_segmaps=data["instance_segmaps"],
+                        instance_attribute_maps=data["instance_attribute_maps"],
                         colors=data["colors"],
                         mask_encoding_format='polygon',
                         color_file_format="PNG", 
