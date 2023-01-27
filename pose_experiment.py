@@ -5,6 +5,7 @@ import bpy
 import time
 
 from pathlib import Path
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('tag_board', default="./CAD_model/tagboard_21x21x1cm.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
@@ -56,7 +57,7 @@ def pipeline_init():
     # tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
     tag_baord.set_rotation_euler(np.array([-np.pi/2, np.pi, 0]))
     # Make the tagboard object passively participate in the physics simulation
-    tag_baord.enable_rigidbody(active=False, collision_shape="CONVEX_HULL", mass = 5)
+    tag_baord.enable_rigidbody(active=False, collision_shape="CONVEX_HULL", mass=1)
 
 ###############################################################
 # Load usb objects
@@ -75,12 +76,12 @@ parts = ['mainshell', 'topshell', 'insert_mold']
 
 # For each part(mainshell, topshell, or insert_mold)
 # The number of samples = part_num * iter
-part_num = 2
-iter = 2
+part_num = 10
+iter = 100
 
-
-for obj in Path("./CAD_model/models").rglob('*.obj'):
-    if 'background' in obj.name:
+# for obj in Path("./CAD_model/models").rglob('*.obj'):
+for obj in Path("./CAD_model/UT1113").rglob('*.obj'):
+    if ('background' in obj.name) or ('mainshell' in obj.name) or ('insert_mold' in obj.name):
         continue
 
     Rot_mat = []
@@ -90,7 +91,7 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
     ## each scene contains 10 parts
 
 
-    for i in range(iter):
+    for i in tqdm(range(iter)):
         pipeline_init()
         obj_queue = []
     
@@ -107,7 +108,7 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
         # Physical simulation settings
         ###############################################################
         for part in obj_queue:
-            part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=5)
+            part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=0.1)
             # Also use convex decomposition as collision shapes
             part.build_convex_decomposition_collision_shape(args.vhacd_path)
 
@@ -116,12 +117,12 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
         max_simulation_time=10,
         check_object_interval=1
         )
-        bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=1)
+        # bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=1)
 
         for part in obj_queue:
             part_pose = part.get_local2world_mat()
             Rot_mat.append(part_pose[0:3, 0:3])
-            Z_offset.append(1.8+part_pose[2, 3])
+            Z_offset.append(1.79+part_pose[2, 3])
 
         # ###############################################################
         # # render the whole pipeline and save them as COCO format
@@ -147,8 +148,8 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
     Rot_mat = np.array(Rot_mat)
     print('#'*80)
     print(f"The Rot_mat of {catogory} is \n", Rot_mat )
+    # np.savez_compressed('./pose_tmp/'+catogory, Rotation = Rot_mat, Z_offset = Z_offset)
     np.savez_compressed('./pose_exp/'+catogory, Rotation = Rot_mat, Z_offset = Z_offset)
-    # np.savez_compressed('./pose_exp/'+catogory, Z_offset, kwds="Z_offset")
 
 
         # print(f"Seg save time: {time.time() - time_start}")
