@@ -1,0 +1,3 @@
+#!/bin/bash
+
+blenderproc run main_rand.py

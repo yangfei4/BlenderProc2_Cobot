@@ -1,0 +1,3 @@
+#!/bin/bash
+
+blenderproc run visualize_pose.py "./CAD_model/tagboard_21x21x1cm.obj"

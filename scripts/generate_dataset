@@ -1,0 +1,4 @@
+#!/bin/bash
+# Generate textured background
+mkdir -p ${2:-../synthetic_dataset/random3}
+python rerun.py ${1:-3750} run ./main_rand.py ${2:-../synthetic_dataset/random3}
