@@ -3,71 +3,74 @@ import argparse
 import numpy as np
 import bpy
 import time
+import random
 
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument('tag_board', default="./CAD_model/tagboard_21x21x1cm.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
-parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved ")
-parser.add_argument('vhacd_path', nargs='?', default="blenderproc_resources/vhacd", help="The directory in which vhacd should be installed or is already installed.")
+parser.add_argument('output_dir', nargs='?', default="./output/dataset", help="Path to where the final files will be saved ")
+parser.add_argument('camera_num', nargs='?', help="Which Camera you would like to use: 0-Beslar 1-Zed_2i 2-Zed_mini")
 args = parser.parse_args()
 
 bproc.init()
 Physics = True
 
+###############################################################
+# Load tag_board which is going to catch the usb objects
+###############################################################
+tag_baord = bproc.loader.load_obj('./CAD_model/tagboard_21x21x1cm.obj')[0]
+tag_baord.set_scale([1, 1, 1])
+tag_baord.set_location(np.array([0, 0, 0]))
+# tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
+tag_baord.set_rotation_euler(np.array([-np.pi/2, np.pi, np.random.uniform(0, 2*np.pi, 1).item()]))
+tag_baord.set_cp("category_id", -1)
+tag_baord.set_name("tagboard")
 
-###############################################################
-# Set the camera pose same as world frame, located in origin
-###############################################################
-cam_k = np.array([[21627.734375, 0, 2353.100109], 
-                  [0, 21643.369141, 1917.666411],
-                  [0, 0, 1]])
-# camera.camera.set_resolution(512, 512)
-W, H = 5472, 3648
-bproc.camera.set_resolution(W, H)
-bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
-bproc.camera.add_camera_pose(  [[1, 0, 0, 0],
-                                [0, 1, 0, 0],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, 1]])
 
 ###############################################################
 # Define a random point light
 ###############################################################
 light = bproc.types.Light()
-light.set_type("POINT")
+light.set_type("SPOT")
 # Sample its location in a shell around the point [0.1, 0.2, -0.6]
-light.set_location(bproc.sampler.shell(
-    center=[0.1, 0.2, -0.3],
-    radius_min=0.2,
-    radius_max=0.8,
-    elevation_min=15,
-    elevation_max=50
-))
-light.set_energy(np.random.uniform(80,120,1).item())
+light.set_location([0,0, random.uniform(1, 4)])
+# light.set_location(bproc.sampler.shell(
+#     center=[random.uniform(-0.1,0.1), random.uniform(-0.1, 0.1), random.uniform(2.5,4)],
+#     radius_min=0.2,
+#     radius_max=0.8,
+#     elevation_min=15,
+#     elevation_max=50
+# ))
+light.set_energy(np.random.uniform(50,100,1).item())
 
-
-###############################################################
-# Load tag_board which is going to catch the usb objects
-###############################################################
-tag_baord = bproc.loader.load_obj(args.tag_board)[0]
-tag_baord.set_scale([1, 1, 1])
-tag_baord.set_location(np.array([0, 0, -1.6]))
-# tag_baord.set_rotation_euler(np.array([-np.pi/2, 0, 0]))
-tag_baord.set_rotation_euler(np.array([-np.pi/2, np.pi, np.random.uniform(0, 2*np.pi, 1).item()]))
-tag_baord.set_cp("category_id", -1)
 
 ###############################################################
 # Load usb objects
 ###############################################################
+images = list(Path('/data/ham/BlenderProc2/polyhaven_bgs').rglob('*.png')) +  list(Path('/data/ham/BlenderProc2/polyhaven_bgs').rglob('*.jpg'))
+
 parts = ['mainshell', 'topshell', 'insert_mold']
 obj_queue = []
 for obj in Path("./CAD_model/models").rglob('*.obj'):
     if 'background' in obj.name:
+        # print(f'Skipping loading part {obj.name}')
+
+        background = bproc.loader.load_obj(str(obj)).pop()
+        background.set_cp("category_id", 0)
+        pose = np.eye(4)
+        pose[:, 3] = np.array([0, 0, 0-0.01, 1]).T
+        background.set_scale([1, 1, 1])
+        background.set_local2world_mat(pose)
+        background.enable_rigidbody(active=False, collision_shape="CONVEX_HULL")
+        image = bpy.data.images.load(filepath=str(random.choice(images)))
+
+        for m in background.get_materials():
+            m.set_principled_shader_value('Base Color', image)
+
         continue
 
     ## TODO(yangfei): should assign each part with unique id?  e.g. mainshell_00
-    for _ in range(3):
+    for _ in range(10):
         obj_queue.append(bproc.loader.load_obj(str(obj)).pop())
         part = obj_queue[-1]
 
@@ -79,7 +82,6 @@ for obj in Path("./CAD_model/models").rglob('*.obj'):
         print('category_id =', part.get_cp("category_id"))
         print('Part Name =', part.get_name())
 
-import pdb;pdb.set_trace()
 
 ###############################################################
 # Set the initial poses of objects randomly
@@ -88,7 +90,8 @@ import pdb;pdb.set_trace()
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    obj.set_location(np.random.uniform([-0.03, -0.03, -1.56], [0.03, 0.03, -1.55]))
+    # obj.set_location(np.random.uniform([-0.04, -0.04, 0.015], [0.04, 0.04, 0.025]))
+    obj.set_location(np.random.uniform([-0.2, -0.18, 0.015], [0.2, 0.18, 0.025]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
@@ -103,41 +106,76 @@ bproc.object.sample_poses(
 ###############################################################
 if Physics:
     # Make the tagboard object passively participate in the physics simulation
-    tag_baord.enable_rigidbody(active=False, collision_shape="CONVEX_HULL", mass = 5)
+    tag_baord.enable_rigidbody(active=False, collision_shape="CONVEX_HULL", mass = 0.17)
 
     for part in obj_queue:
         # Make the bin object actively participate in the physics simulation (they should fall into the board)
         # part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", collision_margin = 0.01, mass=10, linear_damping = 0.2)
         # part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", mass=5)
-        part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=5)
+        part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=0.01)
         # Also use convex decomposition as collision shapes
-        part.build_convex_decomposition_collision_shape(args.vhacd_path)
+        part.build_convex_decomposition_collision_shape('blenderproc_resources/vhacd')
 
     bproc.object.simulate_physics_and_fix_final_poses(
-    min_simulation_time=0.2,
+    min_simulation_time=1,
     max_simulation_time=20,
     check_object_interval=1
     )
     # This will make the renderer render the first 20 frames of the simulation
     # bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=20)
 
+
 ###############################################################
-# Pose information
+# Set the camera pose same as world frame, located in origin
 ###############################################################
-print('#'*80)
+################## 0 Basler  ##################
+cam_k_Basler = np.array([[21971.333024, 0, 2208/2], 
+                         [0, 22025.144687, 1242/2],
+                         [0, 0, 1]])
+# W_Basler, H_Basler = 5472, 3648
+pose_Basler = [[1, 0, 0,  0],
+                [0, 1, 0, 0],
+                [0, 0, 1, random.uniform(1.2, 1.4)],
+                [0, 0, 0, 1]]
 
-T_cam_to_world = bproc.camera.get_camera_pose(frame=None)
-R_cam_to_world = T_cam_to_world[0:3, 0:3]
-print("T_cam_to_world = \n", T_cam_to_world)
 
-part_poses = []
-for part in obj_queue:
-    part_pose = part.get_local2world_mat()
-    part_poses.append(part_pose)
+################## 1 ZED 2i  ##################
+cam_k_2i = np.array([[1908.56, 0,       1113.88], 
+                  [0,       1909.06, 588.34],
+                  [0,       0,       1]])
+# W_2i, H_2i = 2208, 1242
 
-print(obj_queue[0].get_name(), "T_part_to_world = \n", part_poses[0])
 
-print('#'*80)
+################## 2 ZED mini ##################
+cam_k_mini = np.array([[1545.53, 0,       1110.24], 
+                  [0,       1545.20, 601.27],
+                  [0,       0,       1]])
+# W_mini, H_mini = 2208, 1242
+
+
+location = [random.uniform(-0.2,0.2), random.uniform(-0.2, 0.2), random.uniform(0.3,0.35)]
+poi = bproc.object.compute_poi(obj_queue)
+rotation_matrix = bproc.camera.rotation_from_forward_vec(poi - location, inplane_rot=0)
+pose_Zed = bproc.math.build_transformation_mat(location, rotation_matrix)
+
+camera_num = int(args.camera_num)
+
+if camera_num==0:
+    cam_k = cam_k_Basler
+    pose_camera = pose_Basler
+elif camera_num==1:
+    cam_k = cam_k_2i
+    pose_camera = pose_Zed
+else:
+    cam_k = cam_k_mini
+    pose_camera = pose_Zed
+
+W, H = 2208, 1242
+
+bproc.camera.set_resolution(W, H)
+bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
+bproc.camera.add_camera_pose(pose_camera)
+
 
 ###############################################################
 # render the whole pipeline and save them as COCO format
