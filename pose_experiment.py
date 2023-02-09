@@ -10,18 +10,16 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser()
 parser.add_argument('tag_board', default="./CAD_model/tagboard_21x21x1cm.obj",help="Path to the object file containing the bin, should be examples/advanced/physics_convex_decomposition/bin.obj.")
 parser.add_argument('output_dir', nargs='?', default="./output", help="Path to where the final files will be saved ")
-parser.add_argument('vhacd_path', nargs='?', default="blenderproc_resources/vhacd", help="The directory in which vhacd should be installed or is already installed.")
 args = parser.parse_args()
 bproc.init()
 
 def pipeline_init():
-
     ###############################################################
     # Set the camera pose same as world frame, located in origin
     ###############################################################
     cam_k = np.array([[21627.734375, 0, 2353.100109], 
-                    [0, 21643.369141, 1917.666411],
-                    [0, 0, 1]])
+                      [0, 21643.369141, 1917.666411],
+                      [0, 0, 1]])
     # camera.camera.set_resolution(512, 512)
     W, H = int(5472), int(3648)
     bproc.camera.set_resolution(W, H)
@@ -76,21 +74,20 @@ parts = ['mainshell', 'topshell', 'insert_mold']
 
 # For each part(mainshell, topshell, or insert_mold)
 # The number of samples = part_num * iter
-part_num = 10
-iter = 100
+part_num = 30
+iter = 500
 
 # for obj in Path("./CAD_model/models").rglob('*.obj'):
 for obj in Path("./CAD_model/UT1113").rglob('*.obj'):
-    if ('background' in obj.name) or ('mainshell' in obj.name) or ('insert_mold' in obj.name):
+    if 'background' in obj.name:
         continue
 
     Rot_mat = []
     Z_offset = []
     catogory = obj.name[:-4]
+
     ## mainshell or topshell or insert_mol
     ## each scene contains 10 parts
-
-
     for i in tqdm(range(iter)):
         pipeline_init()
         obj_queue = []
@@ -108,49 +105,22 @@ for obj in Path("./CAD_model/UT1113").rglob('*.obj'):
         # Physical simulation settings
         ###############################################################
         for part in obj_queue:
-            part.enable_rigidbody(active=True, collision_shape="COMPOUND", mass=0.1)
-            # Also use convex decomposition as collision shapes
-            part.build_convex_decomposition_collision_shape(args.vhacd_path)
+            part.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", mass=0.1)
 
+        # Simulation time
         bproc.object.simulate_physics_and_fix_final_poses(
         min_simulation_time=0.2,
         max_simulation_time=10,
         check_object_interval=1
         )
-        # bproc.utility.set_keyframe_render_interval(frame_start=0, frame_end=1)
 
         for part in obj_queue:
             part_pose = part.get_local2world_mat()
             Rot_mat.append(part_pose[0:3, 0:3])
-            Z_offset.append(1.79+part_pose[2, 3])
 
-        # ###############################################################
-        # # render the whole pipeline and save them as COCO format
-        # ###############################################################
-        # bproc.renderer.set_max_amount_of_samples(50)
-        # bproc.renderer.set_noise_threshold(1)
-        # bproc.renderer.set_cpu_threads(0)
-        # data = bproc.renderer.render()
-        # seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
-
-        # # Write data to coco file
-        # # bproc.writer.write_coco_annotations(os.path.join(args.output_dir, 'coco_data'),
-        # time_start = time.time()
-        # bproc.writer.write_coco_annotations(f"{args.output_dir}",
-        #                         instance_segmaps=seg_data["instance_segmaps"],
-        #                         instance_attribute_maps=seg_data["instance_attribute_maps"],
-        #                         colors=data["colors"],
-        #                         mask_encoding_format='polygon',
-        #                         color_file_format="PNG", 
-        #                         append_to_existing_output=True)
         bproc.clean_up(clean_up_camera=True)
 
     Rot_mat = np.array(Rot_mat)
     print('#'*80)
     print(f"The Rot_mat of {catogory} is \n", Rot_mat )
-    # np.savez_compressed('./pose_tmp/'+catogory, Rotation = Rot_mat, Z_offset = Z_offset)
-    np.savez_compressed('./pose_exp/'+catogory, Rotation = Rot_mat, Z_offset = Z_offset)
-
-
-        # print(f"Seg save time: {time.time() - time_start}")
-        # print()
+    np.savez_compressed('./pose_exp/'+catogory, Rotation = Rot_mat)
