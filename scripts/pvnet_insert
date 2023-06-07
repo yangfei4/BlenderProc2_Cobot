@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Set default values for the arguments if not provided
+amount_of_runs=5
+cad_path="/home/yangfei/BlenderProc2_Cobot/CAD_model/models_single"
+camera_id=1
+part_name="insert_mold"
+output_folder="/home/yangfei/clean-pvnet/data/FIT/insert_mold" #output should be last argument
+
+# Create the output folder if it doesn't exist
+mkdir -p ${output_folder}
+
+# Execute the rerun.py script
+python rerun.py ${amount_of_runs} run ./pvnet.py ${cad_path} ${camera_id} ${part_name} ${output_folder}
