@@ -11,4 +11,4 @@ output_folder="/home/yangfei/clean-pvnet/data/FIT/insert_mold" #output should be
 mkdir -p ${output_folder}
 
 # Execute the rerun.py script
-python rerun.py ${amount_of_runs} run ./pvnet.py ${cad_path} ${camera_id} ${part_name} ${output_folder}
+python rerun.py ${1:-amount_of_runs} run ./pvnet.py ${cad_path} ${camera_id} ${part_name} ${output_folder}
