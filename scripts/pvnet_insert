@@ -5,10 +5,12 @@ amount_of_runs=5
 cad_path="/home/yangfei/BlenderProc2_Cobot/CAD_model/models_single"
 camera_id=1
 part_name="insert_mold"
-output_folder="/home/yangfei/clean-pvnet/data/FIT/insert_mold" #output should be last argument
+output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold" #output should be last argument
+pose_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold/pose" #output should be last argument
 
 # Create the output folder if it doesn't exist
-mkdir -p ${output_folder}
+mkdir -p ${output_path}
+mkdir -p ${pose_path}
 
 # Execute the rerun.py script
-python rerun.py ${1:-amount_of_runs} run ./pvnet.py ${cad_path} ${camera_id} ${part_name} ${output_folder}
+python rerun.py ${1:-amount_of_runs} run ./pvnet.py ${cad_path} ${camera_id} ${part_name} ${output_path}
