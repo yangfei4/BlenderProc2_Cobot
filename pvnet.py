@@ -88,8 +88,8 @@ for obj in Path(args.cad_path).rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    # obj.set_location(np.random.uniform([-0.20, -0.12, 0.015], [0.20, 0.12, 0.025]))
-    obj.set_location(np.random.uniform([-0.05, -0.05, 0.015], [0.05, 0.05, 0.025]))
+    # obj.set_location(np.random.uniform([-0.05, -0.05, 0.015], [0.05, 0.05, 0.025]))
+    obj.set_location(np.random.uniform([-0.005, -0.005, 0.008], [0.005, 0.005, 0.008]))
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
@@ -126,9 +126,12 @@ pose_Basler = [[1, 0, 0,  0],
                 [0, 0, 0, 1]]
 
 
-################## 1 ZED 2i  ##################
-cam_k_2i = np.array([[1908.56, 0,       1113.88], 
-                  [0,       1909.06, 588.34],
+# ################## 1 ZED 2i  ##################
+# cam_k_2i = np.array([[1908.56, 0,       1113.88], 
+#                   [0,       1909.06, 588.34],
+#                   [0,       0,       1]])
+cam_k_2i = np.array([[1908.56, 0,       256/2], 
+                  [0,       1909.06, 256/2],
                   [0,       0,       1]])
 # W_2i, H_2i = 2208, 1242
 
@@ -159,7 +162,8 @@ else:
     cam_k = cam_k_mini
     pose_camera = pose_Zed
 
-W, H = 2208, 1242
+# W, H = 2208, 1242
+W, H = 256, 256
 
 bproc.camera.set_resolution(W, H)
 bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
