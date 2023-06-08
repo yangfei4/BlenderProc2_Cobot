@@ -213,7 +213,7 @@ import os
 pose_path = args.output_dir + "/pose"
 files = os.listdir(pose_path)
 # Get the number of existing files
-count_id = len(files) + 1
+count_id = len(files)
 np.save(pose_path+f"/pose{count_id}.npy", obj_pose_in_cam[:3][:])
 
 
