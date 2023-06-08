@@ -5,8 +5,8 @@ amount_of_runs=5
 cad_path="/home/yangfei/BlenderProc2_Cobot/CAD_model/models_single"
 camera_id=1
 part_name="insert_mold"
-output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold" #output should be last argument
-pose_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold/pose" #output should be last argument
+output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold_256" #output should be last argument
+pose_path="${output_path}/pose"
 
 # Create the output folder if it doesn't exist
 mkdir -p ${output_path}
