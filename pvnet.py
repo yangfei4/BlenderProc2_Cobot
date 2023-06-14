@@ -14,7 +14,6 @@ parser.add_argument('output_dir', nargs='?', default="./output/dataset", help="P
 args = parser.parse_args()
 
 bproc.init()
-Physics = True
 
 ###############################################################
 # Load tag_board which is going to catch the usb objects
@@ -199,14 +198,20 @@ bproc.writer.write_coco_annotations(f"{args.output_dir}",
 ###############################################################
 # Save the pose annotation of target object wrt camera
 ###############################################################
-obj_pose_world = np.array(object.get_local2world_mat())
-cam_pose_world = np.array(bproc.camera.get_camera_pose(frame=None))
 # Noting that Blender uses the OpenGL coordinate frame. So, if you want to 
 # use camera poses that are specified in OpenCV coordinates, you need to transform them first. 
+obj_pose_world = np.array(object.get_local2world_mat())
+obj_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(obj_pose_world, ["X", "-Y", "-Z"])
+
+cam_pose_world = np.array(bproc.camera.get_camera_pose(frame=None))
 cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Y", "-Z"])
+# cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Z", "Y"])
 
 cam_pose_inv = np.linalg.inv(cam_pose_world)
-obj_pose_in_cam = np.matmul(obj_pose_world, cam_pose_inv)
+obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
+
+# if(obj_pose_in_cam[2][3]<0):
+    # obj_pose_in_cam = np.matmul(obj_pose_world, cam_pose_inv)
 
 print("obj pose in world", obj_pose_world)
 print("cam pose in world", cam_pose_world)

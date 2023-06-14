@@ -28,5 +28,5 @@ for run_id in tqdm(range(amount_of_runs)):
     # execute one BlenderProc run
     subprocess.call(" ".join(cmd), shell=True)
 
-print(f"Seg save time: {time.time() - time_start}")
+print(f"[Timing] Generating {amount_of_runs} images: {time.time() - time_start}")
 print()
