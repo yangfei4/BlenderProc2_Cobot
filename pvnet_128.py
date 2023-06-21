@@ -34,9 +34,16 @@ tag_board.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", mass = 0.
 light = bproc.types.Light()
 light.set_type("POINT")
 # Sample its location in a shell around the point [0.1, 0.2, -0.6]
-light.set_location([0,0, random.uniform(1, 4)])
-light.set_energy(np.random.uniform(50,100,1).item())
+light.set_location([random.uniform(0, 1), random.uniform(0, 1), random.uniform(1.5, 2)])
+# light.set_energy(np.random.uniform(50,100,1).item())
+light.set_energy(random.uniform(60, 150))
 
+light2 = bproc.types.Light()
+light2.set_type("POINT")
+# Sample its location in a shell around the point [0.1, 0.2, -0.6]
+light2.set_location([random.uniform(-1, 0), random.uniform(-1, 0), random.uniform(1.5, 2)])
+# light.set_energy(np.random.uniform(50,100,1).item())
+light2.set_energy(random.uniform(60, 150))
 
 ###############################################################
 # Load usb objects
