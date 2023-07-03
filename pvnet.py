@@ -4,6 +4,7 @@ import numpy as np
 import bpy
 import time
 import random
+import sys
 
 from pathlib import Path
 parser = argparse.ArgumentParser()
@@ -34,9 +35,16 @@ tag_board.enable_rigidbody(active=True, collision_shape="CONVEX_HULL", mass = 0.
 light = bproc.types.Light()
 light.set_type("POINT")
 # Sample its location in a shell around the point [0.1, 0.2, -0.6]
-light.set_location([0,0, random.uniform(1, 4)])
-light.set_energy(np.random.uniform(50,100,1).item())
+light.set_location([random.uniform(0, 1), random.uniform(0, 1), random.uniform(1.5, 2)])
+# light.set_energy(np.random.uniform(50,100,1).item())
+light.set_energy(random.uniform(60, 150))
 
+light2 = bproc.types.Light()
+light2.set_type("POINT")
+# Sample its location in a shell around the point [0.1, 0.2, -0.6]
+light2.set_location([random.uniform(-1, 0), random.uniform(-1, 0), random.uniform(1.5, 2)])
+# light.set_energy(np.random.uniform(50,100,1).item())
+light2.set_energy(random.uniform(60, 150))
 
 ###############################################################
 # Load usb objects
@@ -87,8 +95,8 @@ for obj in Path(args.cad_path).rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    # obj.set_location(np.random.uniform([-0.05, -0.05, 0.015], [0.05, 0.05, 0.025]))
-    obj.set_location(np.random.uniform([-0.005, -0.005, 0.008], [0.005, 0.005, 0.008]))
+    obj.set_location(np.random.uniform([-0.0015, -0.0015, 0.015], [0.0015, 0.0015, 0.015]))
+    # obj.set_location([0.000, 0.000, 0.008])
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
 # Sample the poses of all usb objects, while making sure that no objects collide with each other.
@@ -129,8 +137,8 @@ pose_Basler = [[1, 0, 0,  0],
 # cam_k_2i = np.array([[1908.56, 0,       1113.88], 
 #                   [0,       1909.06, 588.34],
 #                   [0,       0,       1]])
-cam_k_2i = np.array([[1908.56, 0,       256/2], 
-                  [0,       1909.06, 256/2],
+cam_k_2i = np.array([[1908.56, 0,       128/2], 
+                  [0,       1909.06, 128/2],
                   [0,       0,       1]])
 # W_2i, H_2i = 2208, 1242
 
@@ -142,9 +150,8 @@ cam_k_mini = np.array([[1545.53, 0,       1110.24],
 # W_mini, H_mini = 2208, 1242
 
 
-location = [random.uniform(-0.2,0.2), random.uniform(-0.2, 0.2), random.uniform(0.3,0.35)]
-# poi = bproc.object.compute_poi(obj_queue)
-poi = np.array([0, 0, 0])
+location = [random.uniform(-0.2,0.2), random.uniform(-0.2, 0.2), random.uniform(0.20,0.35)]
+poi = bproc.object.compute_poi(obj_queue) + np.random.uniform([-0.005, -0.005, 0], [0.005, 0.005, 0])
 rotation_matrix = bproc.camera.rotation_from_forward_vec(poi - location, inplane_rot=0)
 pose_Zed = bproc.math.build_transformation_mat(location, rotation_matrix)
 
@@ -162,12 +169,28 @@ else:
     pose_camera = pose_Zed
 
 # W, H = 2208, 1242
-W, H = 256, 256
+W, H = 128, 128
 
 bproc.camera.set_resolution(W, H)
 bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
 bproc.camera.add_camera_pose(pose_camera)
 
+###############################################################
+# Compute object pose wrt camera
+###############################################################
+# Noting that Blender uses the OpenGL coordinate frame. So, if you want to 
+# use camera poses that are specified in OpenCV coordinates, you need to transform them first. 
+obj_pose_world = np.array(object.get_local2world_mat())
+obj_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(obj_pose_world, ["X", "-Y", "-Z"])
+
+cam_pose_world = np.array(bproc.camera.get_camera_pose(frame=None))
+cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Y", "-Z"])
+
+cam_pose_inv = np.linalg.inv(cam_pose_world)
+obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
+
+if(obj_pose_in_cam[2,3]>1):
+    sys.exit()
 
 ###############################################################
 # render the whole pipeline and save them as COCO format
@@ -198,21 +221,6 @@ bproc.writer.write_coco_annotations(f"{args.output_dir}",
 ###############################################################
 # Save the pose annotation of target object wrt camera
 ###############################################################
-# Noting that Blender uses the OpenGL coordinate frame. So, if you want to 
-# use camera poses that are specified in OpenCV coordinates, you need to transform them first. 
-obj_pose_world = np.array(object.get_local2world_mat())
-obj_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(obj_pose_world, ["X", "-Y", "-Z"])
-
-cam_pose_world = np.array(bproc.camera.get_camera_pose(frame=None))
-cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Y", "-Z"])
-# cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Z", "Y"])
-
-cam_pose_inv = np.linalg.inv(cam_pose_world)
-obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
-
-# if(obj_pose_in_cam[2][3]<0):
-    # obj_pose_in_cam = np.matmul(obj_pose_world, cam_pose_inv)
-
 print("obj pose in world", obj_pose_world)
 print("cam pose in world", cam_pose_world)
 print("obj pose in camera", obj_pose_in_cam)
