@@ -95,7 +95,7 @@ for obj in Path(args.cad_path).rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    obj.set_location(np.random.uniform([-0.03, -0.03, 0.015], [0.03, 0.03, 0.015]))
+    obj.set_location(np.random.uniform([-0.03, -0.03, 0.02], [0.03, 0.03, 0.025]))
     # obj.set_location(np.random.uniform([-0.0015, -0.0015, 0.015], [0.0015, 0.0015, 0.015]))
     # obj.set_location([0.000, 0.000, 0.008])
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
@@ -185,7 +185,7 @@ cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_mat
 
 cam_pose_inv = np.linalg.inv(cam_pose_world)
 obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
-if(obj_pose_in_cam[2,3]<1):
+if(obj_pose_in_cam[2,3]<1 or obj_pose_in_cam[2,3]>2):
     sys.exit()
 
 ##################################################################
