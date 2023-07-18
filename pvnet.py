@@ -95,7 +95,8 @@ for obj in Path(args.cad_path).rglob('*.obj'):
 def sample_pose(obj: bproc.types.MeshObject):
     # Sample the location above the tagboard
     obj.set_scale([1, 1, 1])
-    obj.set_location(np.random.uniform([-0.0015, -0.0015, 0.015], [0.0015, 0.0015, 0.015]))
+    obj.set_location(np.random.uniform([-0.03, -0.03, 0.015], [0.03, 0.03, 0.015]))
+    # obj.set_location(np.random.uniform([-0.0015, -0.0015, 0.015], [0.0015, 0.0015, 0.015]))
     # obj.set_location([0.000, 0.000, 0.008])
     obj.set_rotation_euler(bproc.sampler.uniformSO3())
 
@@ -122,9 +123,14 @@ check_object_interval=1
 # Set the camera pose same as world frame, located in origin
 ###############################################################
 ################## 0 Basler  ##################
-cam_k_Basler = np.array([[21971.333024, 0, 2208/2], 
-                         [0, 22025.144687, 1242/2],
-                         [0, 0, 1]])
+# cam_k_Basler = np.array([[21627.734375, 0, 2353.100109], 
+#                     [0, 21643.369141, 1917.666411],
+#                     [0, 0, 1]])
+# 
+# Intrinsics April 2023
+cam_k_Basler = np.array([[10704.062350, 0, 2694.112343], 
+                    [0, 10727.438047, 1669.169773],
+                    [0, 0, 1]])
 # W_Basler, H_Basler = 5472, 3648
 pose_Basler = [[1, 0, 0,  0],
                 [0, 1, 0, 0],
@@ -150,29 +156,20 @@ cam_k_mini = np.array([[1545.53, 0,       1110.24],
 # W_mini, H_mini = 2208, 1242
 
 
-location = [random.uniform(-0.2,0.2), random.uniform(-0.2, 0.2), random.uniform(0.20,0.35)]
-poi = bproc.object.compute_poi(obj_queue) + np.random.uniform([-0.005, -0.005, 0], [0.005, 0.005, 0])
+location = [random.uniform(-0.2,0.2), random.uniform(-0.2, 0.2), random.uniform(1.4,1.9)]
+poi = np.random.uniform([-0.005, -0.005, 0], [0.005, 0.005, 0])
 rotation_matrix = bproc.camera.rotation_from_forward_vec(poi - location, inplane_rot=0)
-pose_Zed = bproc.math.build_transformation_mat(location, rotation_matrix)
+pose_camera = bproc.math.build_transformation_mat(location, rotation_matrix)
 
 camera_id = int(args.camera_id)
 
 if camera_id==0:
     cam_k = cam_k_Basler
-    # cam_k = cam_k_2i
-    pose_camera = pose_Basler
 elif camera_id==1:
     cam_k = cam_k_2i
-    pose_camera = pose_Zed
 else:
     cam_k = cam_k_mini
-    pose_camera = pose_Zed
 
-# W, H = 2208, 1242
-W, H = 128, 128
-
-bproc.camera.set_resolution(W, H)
-bproc.camera.set_intrinsics_from_K_matrix(cam_k, W, H)
 bproc.camera.add_camera_pose(pose_camera)
 
 ###############################################################
@@ -188,10 +185,27 @@ cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_mat
 
 cam_pose_inv = np.linalg.inv(cam_pose_world)
 obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
-
-if(obj_pose_in_cam[2,3]>1):
+if(obj_pose_in_cam[2,3]<1):
     sys.exit()
 
+##################################################################
+# Compute pixel coordinates of target object, then crop and  
+# shift image to make object close to the center of 128x128 image
+##################################################################
+K = np.hstack((cam_k, np.zeros((3, 1)))) # 3x4
+cam_matrix = np.hstack((cam_k, np.zeros((3, 1)))) # 4x4
+T = np.linalg.inv(cam_pose_world) # 4x4
+t_obj = obj_pose_world[:,3] # 4x1
+p = K @ T @ t_obj # 3x1
+p /= p[2] # [u0, v0, 1]
+
+W, H = int(5472), int(3648)
+cam_k[0,2] += (W//2 - p[0]) - (W//2 - 64)
+cam_k[1,2] += (H//2 - p[1]) - (H//2 - 64)
+
+W_crop, H_crop = 128, 128
+bproc.camera.set_resolution(W_crop, H_crop)
+bproc.camera.set_intrinsics_from_K_matrix(cam_k, W_crop, H_crop)
 ###############################################################
 # render the whole pipeline and save them as COCO format
 ###############################################################
@@ -202,11 +216,9 @@ bproc.renderer.set_cpu_threads(0)
 bproc.renderer.enable_normals_output()
 bproc.renderer.enable_segmentation_output(map_by=["instance", "class", "name"])
 data = bproc.renderer.render()
-# seg_data = bproc.renderer.render_segmap(map_by=["instance", "class", "name"])
 
 time_start = time.time()
 # Write data to coco file
-# bproc.writer.write_coco_annotations(os.path.join(args.output_dir, 'coco_data'),
 bproc.writer.write_coco_annotations(f"{args.output_dir}",
                         # instance_segmaps=seg_data["instance_segmaps"],
                         # instance_attribute_maps=seg_data["instance_attribute_maps"],
@@ -221,6 +233,7 @@ bproc.writer.write_coco_annotations(f"{args.output_dir}",
 ###############################################################
 # Save the pose annotation of target object wrt camera
 ###############################################################
+print("camera intrinsics", cam_k)
 print("obj pose in world", obj_pose_world)
 print("cam pose in world", cam_pose_world)
 print("obj pose in camera", obj_pose_in_cam)
@@ -232,8 +245,10 @@ files = os.listdir(pose_path)
 # Get the number of existing files
 count_id = len(files)
 np.save(pose_path+f"/pose{count_id}.npy", obj_pose_in_cam[:3][:])
+# intrinsics for each image
+k_path = args.output_dir + "/k"
+np.save(k_path+f"/k{count_id}.npy", cam_k)
 
 
 print(f"Seg save time: {time.time() - time_start}")
-# print(f"Generate a single image time: {time.time() - time_start}")
 print()
