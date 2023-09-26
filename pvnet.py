@@ -188,6 +188,10 @@ obj_pose_in_cam = np.matmul(cam_pose_inv, obj_pose_world)
 if(obj_pose_in_cam[2,3]<1 or obj_pose_in_cam[2,3]>2):
     sys.exit()
 
+if(part=='mainshell' and (obj_pose_world[2,3]<0.006 or obj_pose_world[2,3]>0.008)):
+    sys.exit()
+
+
 ##################################################################
 # Compute pixel coordinates of target object, then crop and  
 # shift image to make object close to the center of 128x128 image
@@ -248,7 +252,6 @@ np.save(pose_path+f"/pose{count_id}.npy", obj_pose_in_cam[:3][:])
 # intrinsics for each image
 k_path = args.output_dir + "/k"
 np.save(k_path+f"/k{count_id}.npy", cam_k)
-
 
 print(f"Seg save time: {time.time() - time_start}")
 print()
