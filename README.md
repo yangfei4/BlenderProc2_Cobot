@@ -1,6 +1,10 @@
 # Blenderproc2_Cobot
 This repo is a demo script of blenderProc2, particularly the physics collision and simulation tutorial and examples.
 * Sythetic datasets generation pipeline for object detection and pose estimation
+* Augmented synthetic dataset with annotation
+<p align="center">
+  <img src="https://github.com/yangfei4/Sim2real/blob/main/figures/synthetic.jpg" width="400">
+</p>
 
 ### Install blenderproc lib
 
