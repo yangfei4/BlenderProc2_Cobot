@@ -20,6 +20,12 @@ blenderproc quickstart
 blenderproc vis hdf5 output/0.hdf5
 ```
 
+### Sythetic Data Generation
+```
+bash ./scripts/generate_dataset
+```
+
+
 ### Physical collision experiment
 Before running this, please download USB CAD models, and put them in `./CAD_model/models`
 ```
