@@ -6,8 +6,8 @@ cad_path="/home/yangfei/BlenderProc2_Cobot/CAD_model/models_single"
 camera_id=0
 
 part_name="insert_mold"
-# output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold_fixed_train" #output should be last argument
-output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold_fixed_test" #output should be last argument
+output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold_train" #output should be last argument
+# output_path="/home/yangfei/clean-pvnet/data/FIT/insert_mold_test" #output should be last argument
 
 # part_name="mainshell"
 # output_path="/home/yangfei/clean-pvnet/data/FIT/mainshell_train" #output should be last argument
