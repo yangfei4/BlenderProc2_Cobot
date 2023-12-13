@@ -20,6 +20,14 @@ blenderproc quickstart
 blenderproc vis hdf5 output/0.hdf5
 ```
 
+### Sythetic Data Generation for PvNet
+- step 1: modify the part_name and output_path in this [pvnet](https://github.com/yangfei4/BlenderProc2_Cobot/blob/main/scripts/pvnet) script
+- step 2: run the command in root folder:
+```
+bash script/pvnet NUMBER_OF_IMAGES
+```
+- step 3: after step 2 is done, modify the data_path in [binary_mask.ipynb](https://github.com/yangfei4/BlenderProc2_Cobot/blob/main/binary_mask.ipynb) and run all code blocks to rename images and generate binary mask images for dataset that was just created.
+
 ### Sythetic Data Generation
 ```
 bash ./scripts/generate_dataset
