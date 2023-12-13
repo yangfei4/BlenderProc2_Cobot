@@ -178,7 +178,6 @@ bproc.camera.add_camera_pose(pose_camera)
 # Noting that Blender uses the OpenGL coordinate frame. So, if you want to 
 # use camera poses that are specified in OpenCV coordinates, you need to transform them first. 
 obj_pose_world = np.array(object.get_local2world_mat())
-obj_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(obj_pose_world, ["X", "-Y", "-Z"])
 
 cam_pose_world = np.array(bproc.camera.get_camera_pose(frame=None))
 cam_pose_world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(cam_pose_world, ["X", "-Y", "-Z"])
